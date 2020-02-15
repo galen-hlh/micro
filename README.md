@@ -1,8 +1,8 @@
 # micro
 
-# golang简单实现grpc微服务
+## golang简单实现grpc微服务
 
-# RUN
+## RUN
 ```bash
 go run main.go
 ```
