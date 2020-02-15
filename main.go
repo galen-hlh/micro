@@ -1,16 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"micro/grpc"
+	"log"
+	"micro/gateway"
 )
 
 func main() {
-	service := grpc.NewService()
+	service := gateway.NewService(
+		gateway.Name("helper"),
+	)
 
 	service.Init()
 
 	if err := service.Run(); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 }

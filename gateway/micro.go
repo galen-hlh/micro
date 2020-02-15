@@ -1,12 +1,12 @@
-package grpc
+package gateway
 
 import (
-	"micro/grpc/client"
-	"micro/grpc/server"
+	"micro/gateway/client"
+	"micro/gateway/server"
 )
 
-type Service interface {
-	// The grpc name
+type Gateway interface {
+	// The application name
 	Name() string
 	//// Init initialises options
 	Init(...Option)
@@ -16,14 +16,14 @@ type Service interface {
 	Client() client.Client
 	//// Server is for handling requests and events
 	Server() server.Server
-	//// Run the grpc
+	//// Run the application
 	Run() error
-	//// The grpc implementation
+	//// The application implementation
 	String() string
 }
 
 type Option func(*Options)
 
-func NewService(opts ...Option) Service {
+func NewService(opts ...Option) Gateway {
 	return newService(opts...)
 }
