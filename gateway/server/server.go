@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Server interface {
 	Start() error
 	Stop() error
 	String() string
+	GetGrpcServer() *grpc.Server
 }
 
 var (

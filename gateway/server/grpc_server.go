@@ -116,6 +116,10 @@ func (s *rpcServer) configure(opts ...Option) {
 	s.srv = grpc.NewServer(gopts...)
 }
 
+func (s *rpcServer) GetGrpcServer() *grpc.Server {
+	return s.srv
+}
+
 func (s *rpcServer) getMaxMsgSize() int {
 	if s.opts.maxMsgSize == 0 {
 		return DefaultMaxMsgSize
