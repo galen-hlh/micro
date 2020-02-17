@@ -103,9 +103,9 @@ func newOptions(opt ...Option) Options {
 		o(&opts)
 	}
 
-	if opts.Registry == nil {
-		opts.Registry = registry.DefaultRegistry
-	}
+	//if opts.Registry == nil {
+	//	opts.Registry = registry.DefaultRegistry
+	//}
 
 	if opts.RegisterCheck == nil {
 		opts.RegisterCheck = DefaultRegisterCheck

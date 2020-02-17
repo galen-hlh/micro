@@ -61,76 +61,7 @@ func (s *grpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Micro [%s] Listening on %s", s.String(), ts.Addr().String())
-
-	// use RegisterCheck func before register
-	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
-		log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
-	} else {
-		// announce self to the world
-		if err = s.Register(); err != nil {
-			log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
-		}
-	}
-
-	exit := make(chan bool)
-
-	go func() {
-		t := new(time.Ticker)
-
-		// only process if it exists
-		if s.opts.RegisterInterval > time.Duration(0) {
-			// new ticker
-			t = time.NewTicker(s.opts.RegisterInterval)
-		}
-
-		// return error chan
-		var ch chan error
-
-	Loop:
-		for {
-			select {
-			// register self on interval
-			case <-t.C:
-				s.RLock()
-				registered := s.registered
-				s.RUnlock()
-				if err = s.opts.RegisterCheck(s.opts.Context); err != nil && registered {
-					log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
-					// deregister self in case of error
-					if err := s.Deregister(); err != nil {
-						log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
-					}
-				} else {
-					if err := s.Register(); err != nil {
-						log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
-					}
-				}
-			// wait for exit
-			case ch = <-s.exit:
-				t.Stop()
-				close(exit)
-				break Loop
-			}
-		}
-
-		// deregister self
-		if err := s.Deregister(); err != nil {
-			log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
-		}
-
-		s.Lock()
-		swg := s.wg
-		s.Unlock()
-
-		// wait for requests to finish
-		if swg != nil {
-			swg.Wait()
-		}
-
-		// close transport listener
-		ch <- ts.Close()
-	}()
+	log.Logf("Micro %s [%s] Listening on %s", config.Name, s.String(), ts.Addr().String())
 
 	// micro: go ts.Accept(s.accept)
 	go func() {
@@ -138,6 +69,78 @@ func (s *grpcServer) Start() error {
 			log.Log("gRPC Server start error: ", err)
 		}
 	}()
+
+	// Determine whether to start
+	if config.Registry != nil {
+		// use RegisterCheck func before register
+		if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
+			log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+		} else {
+			// announce self to the world
+			if err = s.Register(); err != nil {
+				log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+			}
+		}
+
+		exit := make(chan bool)
+
+		go func() {
+			t := new(time.Ticker)
+
+			// only process if it exists
+			if s.opts.RegisterInterval > time.Duration(0) {
+				// new ticker
+				t = time.NewTicker(s.opts.RegisterInterval)
+			}
+
+			// return error chan
+			var ch chan error
+
+		Loop:
+			for {
+				select {
+				// register self on interval
+				case <-t.C:
+					s.RLock()
+					registered := s.registered
+					s.RUnlock()
+					if err = s.opts.RegisterCheck(s.opts.Context); err != nil && registered {
+						log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
+						// deregister self in case of error
+						if err := s.Deregister(); err != nil {
+							log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+						}
+					} else {
+						if err := s.Register(); err != nil {
+							log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+						}
+					}
+				// wait for exit
+				case ch = <-s.exit:
+					t.Stop()
+					close(exit)
+					break Loop
+				}
+			}
+
+			// deregister self
+			if err := s.Deregister(); err != nil {
+				log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+			}
+
+			s.Lock()
+			swg := s.wg
+			s.Unlock()
+
+			// wait for requests to finish
+			if swg != nil {
+				swg.Wait()
+			}
+
+			// close transport listener
+			ch <- ts.Close()
+		}()
+	}
 
 	// mark the server as started
 	s.Lock()
