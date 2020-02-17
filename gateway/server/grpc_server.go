@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -71,6 +72,65 @@ func (s *grpcServer) Start() error {
 			log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
 		}
 	}
+
+	exit := make(chan bool)
+
+	go func() {
+		t := new(time.Ticker)
+
+		// only process if it exists
+		if s.opts.RegisterInterval > time.Duration(0) {
+			// new ticker
+			t = time.NewTicker(s.opts.RegisterInterval)
+		}
+
+		// return error chan
+		var ch chan error
+
+	Loop:
+		for {
+			select {
+			// register self on interval
+			case <-t.C:
+				s.RLock()
+				registered := s.registered
+				s.RUnlock()
+				if err = s.opts.RegisterCheck(s.opts.Context); err != nil && registered {
+					log.Logf("Server %s-%s register check error: %s, deregister it", config.Name, config.Id, err)
+					// deregister self in case of error
+					if err := s.Deregister(); err != nil {
+						log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+					}
+				} else {
+					if err := s.Register(); err != nil {
+						log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+					}
+				}
+			// wait for exit
+			case ch = <-s.exit:
+				t.Stop()
+				close(exit)
+				break Loop
+			}
+		}
+
+		// deregister self
+		if err := s.Deregister(); err != nil {
+			log.Logf("Server %s-%s deregister error: %s", config.Name, config.Id, err)
+		}
+
+		s.Lock()
+		swg := s.wg
+		s.Unlock()
+
+		// wait for requests to finish
+		if swg != nil {
+			swg.Wait()
+		}
+
+		// close transport listener
+		ch <- ts.Close()
+	}()
 
 	// micro: go ts.Accept(s.accept)
 	go func() {
@@ -240,6 +300,70 @@ func (s *grpcServer) Register() error {
 	// set what we're advertising
 	s.opts.Advertise = addr
 
+	return nil
+}
+
+func (s *grpcServer) Deregister() error {
+	var err error
+	var advt, host, port string
+
+	config := s.Options()
+
+	// check the advertise address first
+	// if it exists then use it, otherwise
+	// use the address
+	if len(config.Advertise) > 0 {
+		advt = config.Advertise
+	} else {
+		advt = config.Address
+	}
+
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
+		// ipv6 address in format [host]:port or ipv4 host:port
+		host, port, err = net.SplitHostPort(advt)
+		if err != nil {
+			return err
+		}
+	} else {
+		host = advt
+	}
+
+	addr, err := addr.Extract(host)
+	if err != nil {
+		return err
+	}
+
+	// mq-rpc(eg. nats) doesn't need the port. its addr is queue name.
+	if port != "" {
+		addr = mnet.HostPort(addr, port)
+	}
+
+	node := &registry.Node{
+		Id:      config.Name + "-" + config.Id,
+		Address: addr,
+	}
+
+	service := &registry.Service{
+		Name:    config.Name,
+		Version: config.Version,
+		Nodes:   []*registry.Node{node},
+	}
+
+	log.Logf("Registry [%s] Deregistering node: %s", config.Registry.String(), node.Id)
+	if err := config.Registry.Deregister(service); err != nil {
+		return err
+	}
+
+	s.Lock()
+
+	if !s.registered {
+		s.Unlock()
+		return nil
+	}
+
+	s.registered = false
+
+	s.Unlock()
 	return nil
 }
 
