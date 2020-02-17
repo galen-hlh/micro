@@ -1,9 +1,14 @@
 package server
 
 import (
+	"github.com/micro/go-micro/util/addr"
 	"google.golang.org/grpc"
+	"micro/gateway/metadata"
+	"micro/gateway/mnet"
+	"micro/gateway/registry"
 	"micro/util/log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -24,6 +29,10 @@ type grpcServer struct {
 
 	// marks the serve as started
 	started bool
+
+	// used for first registration
+	registered bool
+
 	// graceful exit
 	wg *sync.WaitGroup
 }
@@ -51,7 +60,17 @@ func (s *grpcServer) Start() error {
 		return err
 	}
 
-	log.Logf("Transport [%s] Listening on %s", s.String(), ts.Addr().String())
+	log.Logf("Micro [%s] Listening on %s", s.String(), ts.Addr().String())
+
+	// use RegisterCheck func before register
+	if err = s.opts.RegisterCheck(s.opts.Context); err != nil {
+		log.Logf("Server %s-%s register check error: %s", config.Name, config.Id, err)
+	} else {
+		// announce self to the world
+		if err = s.Register(); err != nil {
+			log.Logf("Server %s-%s register error: %s", config.Name, config.Id, err)
+		}
+	}
 
 	// micro: go ts.Accept(s.accept)
 	go func() {
@@ -93,7 +112,7 @@ func (s *grpcServer) Init(opts ...Option) error {
 }
 
 func (s *grpcServer) String() string {
-	return "rpc"
+	return "grpc"
 }
 
 func (s *grpcServer) configure(opts ...Option) {
@@ -129,6 +148,99 @@ func (s *grpcServer) getMaxMsgSize() int {
 		return DefaultMaxMsgSize
 	}
 	return g
+}
+
+func (s *grpcServer) Register() error {
+	var err error
+	var advt, host, port string
+
+	// parse address for host, port
+	config := s.Options()
+
+	// check the advertise address first
+	// if it exists then use it, otherwise
+	// use the address
+	if len(config.Advertise) > 0 {
+		advt = config.Advertise
+	} else {
+		advt = config.Address
+	}
+
+	if cnt := strings.Count(advt, ":"); cnt >= 1 {
+		// ipv6 address in format [host]:port or ipv4 host:port
+		host, port, err = net.SplitHostPort(advt)
+		if err != nil {
+			return err
+		}
+	} else {
+		host = advt
+	}
+
+	addr, err := addr.Extract(host)
+	if err != nil {
+		return err
+	}
+
+	// make copy of metadata
+	md := make(metadata.Metadata)
+	for k, v := range config.Metadata {
+		md[k] = v
+	}
+
+	// mq-rpc(eg. nats) doesn't need the port. its addr is queue name.
+	if port != "" {
+		addr = mnet.HostPort(addr, port)
+	}
+
+	// register service
+	node := &registry.Node{
+		Id:       config.Name + "-" + config.Id,
+		Address:  addr,
+		Metadata: md,
+	}
+
+	node.Metadata["server"] = s.String()
+	node.Metadata["registry"] = config.Registry.String()
+	node.Metadata["protocol"] = "mucp"
+
+	s.RLock()
+
+	service := &registry.Service{
+		Name:    config.Name,
+		Version: config.Version,
+		Nodes:   []*registry.Node{node},
+		//Endpoints: endpoints,
+	}
+
+	// get registered value
+	registered := s.registered
+
+	s.RUnlock()
+
+	if !registered {
+		log.Logf("Registry [%s] Registering node: %s", config.Registry.String(), node.Id)
+	}
+
+	// create registry options
+	rOpts := []registry.RegisterOption{registry.RegisterTTL(config.RegisterTTL)}
+
+	if err := config.Registry.Register(service, rOpts...); err != nil {
+		return err
+	}
+
+	// already registered? don't need to register subscribers
+	if registered {
+		return nil
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	s.registered = true
+	// set what we're advertising
+	s.opts.Advertise = addr
+
+	return nil
 }
 
 func newGrpcServer(opts ...Option) Server {
