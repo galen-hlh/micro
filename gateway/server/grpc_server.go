@@ -1,11 +1,11 @@
 package server
 
 import (
-	"github.com/micro/go-micro/util/addr"
 	"google.golang.org/grpc"
 	"micro/gateway/metadata"
 	"micro/gateway/mnet"
 	"micro/gateway/registry"
+	"micro/util/addr"
 	"micro/util/log"
 	"net"
 	"strings"

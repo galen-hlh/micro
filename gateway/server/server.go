@@ -17,7 +17,7 @@ type Server interface {
 }
 
 var (
-	DefaultAddress          = "localhost:9502"
+	DefaultAddress          = "localhost:9501"
 	DefaultName             = "micro.server"
 	DefaultRegisterAddress  = "localhost:2791"
 	DefaultVersion          = time.Now().Format("2006.01.02.15.04")

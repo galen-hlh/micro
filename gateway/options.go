@@ -35,6 +35,10 @@ func newOptions(opts ...Option) Options {
 		Signal:  true,
 	}
 
+	for _, o := range opts {
+		o(&opt)
+	}
+
 	return opt
 }
 
