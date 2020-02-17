@@ -13,7 +13,7 @@ var (
 	DefaultMaxMsgSize = 1024 * 1024 * 4
 )
 
-type rpcServer struct {
+type grpcServer struct {
 	sync.RWMutex
 
 	//grpc server
@@ -28,14 +28,14 @@ type rpcServer struct {
 	wg *sync.WaitGroup
 }
 
-func (s *rpcServer) Options() Options {
+func (s *grpcServer) Options() Options {
 	s.RLock()
 	opts := s.opts
 	s.RUnlock()
 	return opts
 }
 
-func (s *rpcServer) Start() error {
+func (s *grpcServer) Start() error {
 	s.RLock()
 	if s.started {
 		s.RUnlock()
@@ -68,7 +68,7 @@ func (s *rpcServer) Start() error {
 	return nil
 }
 
-func (s *rpcServer) Stop() error {
+func (s *grpcServer) Stop() error {
 	s.RLock()
 	if !s.started {
 		s.RUnlock()
@@ -87,16 +87,16 @@ func (s *rpcServer) Stop() error {
 	return err
 }
 
-func (s *rpcServer) Init(opts ...Option) error {
+func (s *grpcServer) Init(opts ...Option) error {
 	s.configure(opts...)
 	return nil
 }
 
-func (s *rpcServer) String() string {
+func (s *grpcServer) String() string {
 	return "rpc"
 }
 
-func (s *rpcServer) configure(opts ...Option) {
+func (s *grpcServer) configure(opts ...Option) {
 	// Don't reprocess where there's no config
 	if len(opts) == 0 && s.srv != nil {
 		return
@@ -116,22 +116,25 @@ func (s *rpcServer) configure(opts ...Option) {
 	s.srv = grpc.NewServer(gopts...)
 }
 
-func (s *rpcServer) GetGrpcServer() *grpc.Server {
+func (s *grpcServer) GetGrpcServer() *grpc.Server {
 	return s.srv
 }
 
-func (s *rpcServer) getMaxMsgSize() int {
-	if s.opts.maxMsgSize == 0 {
+func (s *grpcServer) getMaxMsgSize() int {
+	if s.opts.Context == nil {
 		return DefaultMaxMsgSize
-	} else {
-		return s.opts.maxMsgSize
 	}
+	g, ok := s.opts.Context.Value(maxMsgSizeKey{}).(int)
+	if !ok {
+		return DefaultMaxMsgSize
+	}
+	return g
 }
 
-func newRpcServer(opts ...Option) Server {
+func newGrpcServer(opts ...Option) Server {
 	options := newOptions(opts...)
 
-	return &rpcServer{
+	return &grpcServer{
 		opts: options,
 		exit: make(chan chan error),
 

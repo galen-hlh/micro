@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"micro/gateway/client"
+	"micro/gateway/registry"
 	"micro/gateway/server"
 	"time"
 )
@@ -10,6 +11,9 @@ import (
 type Options struct {
 	Client client.Client
 	Server server.Server
+
+	// Registry service discovery
+	Registry registry.Registry
 
 	// Before and After funcs
 	BeforeStart []func() error
@@ -67,6 +71,15 @@ func Name(n string) Option {
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Server.Init(server.Version(v))
+	}
+}
+
+// Registry sets the registry for the service
+// and the underlying components
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Registry = r
+		o.Server.Init(server.Registry(r))
 	}
 }
 

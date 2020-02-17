@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"micro/gateway/registry"
 	"time"
 )
+
+type maxMsgSizeKey struct{}
 
 type Options struct {
 	Metadata  map[string]string
@@ -13,7 +16,13 @@ type Options struct {
 	Id        string
 	Version   string
 
-	//max msg size
+	// Registry service discovery
+	Registry registry.Registry
+
+	// service register address
+	RegisterAddress []string
+
+	// max msg size
 	maxMsgSize int
 
 	// RegisterCheck runs a check function before registering the service
@@ -56,6 +65,12 @@ func Address(a string) Option {
 	}
 }
 
+func Registry(r registry.Registry) Option {
+	return func(o *Options) {
+		o.Registry = r
+	}
+}
+
 // RegisterCheck run func before registry service
 func RegisterCheck(fn func(context.Context) error) Option {
 	return func(o *Options) {
@@ -88,6 +103,10 @@ func newOptions(opt ...Option) Options {
 		o(&opts)
 	}
 
+	//if opts.Registry == nil {
+	//	opts.Registry = registry.DefaultRegistry
+	//}
+
 	if opts.RegisterCheck == nil {
 		opts.RegisterCheck = DefaultRegisterCheck
 	}
@@ -106,6 +125,10 @@ func newOptions(opt ...Option) Options {
 
 	if len(opts.Version) == 0 {
 		opts.Version = DefaultVersion
+	}
+
+	if len(opts.RegisterAddress) == 0 {
+		opts.RegisterAddress = []string{DefaultRegisterAddress}
 	}
 
 	return opts
