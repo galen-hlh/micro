@@ -1,11 +1,11 @@
 package helper
 
 import (
+	"github.com/galen-hlh/micro-sdk/go/helper"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"micro/gateway/server"
-	"micro/sdk/go/proto/helper"
 	"testing"
 )
 
@@ -22,9 +22,12 @@ func TestSnowFlake_GetDistributeId(t *testing.T) {
 	client := helper.NewHelperClient(conn)
 
 	// 调用gRPC接口
-	tr, err := client.GetDistributeId(context.Background(), &helper.IdRequest{Code: 1})
+	tr, err := client.GetDistributeId(context.Background())
+	_ = tr.Send(&helper.IdRequest{})
+	rsp, _ := tr.Recv()
+
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("服务端响应: %d", tr.Result)
+	log.Printf("服务端响应: %d", rsp.Result)
 }

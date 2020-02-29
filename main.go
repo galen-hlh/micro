@@ -1,29 +1,28 @@
 package main
 
 import (
+	h "github.com/galen-hlh/micro-sdk/go/helper"
 	"google.golang.org/grpc/reflection"
 	"log"
 	"micro/gateway"
-	"micro/gateway/registry"
-	h "micro/sdk/go/proto/helper"
-	"micro/service/helper"
+	"micro/modules/helper"
 )
 
 func main() {
-	etcdRegistry := registry.NewRegistry(func(options *registry.Options) {
-		options.Addrs = []string{"127.0.0.1:2379"}
-	})
+	//etcdRegistry := registry.NewRegistry(func(options *registry.Options) {
+	//	options.Addrs = []string{"127.0.0.1:2379"}
+	//})
 	service := gateway.NewService(
 		gateway.Name("helper"),
 		gateway.Address("127.0.0.1:9502"),
-		gateway.Registry(etcdRegistry),
+		//gateway.Registry(etcdRegistry),
 	)
 
 	//初始化服务
 	service.Init()
 
 	//服务注册
-	h.RegisterHelperServer(service.Server().GetGrpcServer(), &helper.SnowFlake{})
+	h.RegisterHelperServer(service.Server().GetGrpcServer(), &helper.HelperServer{})
 	reflection.Register(service.Server().GetGrpcServer())
 
 	if err := service.Run(); err != nil {
