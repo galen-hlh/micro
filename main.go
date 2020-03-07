@@ -1,11 +1,11 @@
 package main
 
 import (
-	h "github.com/galen-hlh/micro-sdk/go/helper"
+	h "github.com/galen-hlh/micro-sdk/go/idProduce"
 	"google.golang.org/grpc/reflection"
 	"log"
 	"micro/gateway"
-	"micro/modules/helper"
+	"micro/modules/idProduce"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 	//})
 	service := gateway.NewService(
 		gateway.Name("helper"),
-		gateway.Address("127.0.0.1:9502"),
+		gateway.Address("127.0.0.1:9501"),
 		//gateway.Registry(etcdRegistry),
 	)
 
@@ -22,7 +22,7 @@ func main() {
 	service.Init()
 
 	//服务注册
-	h.RegisterHelperServer(service.Server().GetGrpcServer(), &helper.HelperServer{})
+	h.RegisterHelperServer(service.Server().GetGrpcServer(), &idProduce.HelperServer{})
 	reflection.Register(service.Server().GetGrpcServer())
 
 	if err := service.Run(); err != nil {

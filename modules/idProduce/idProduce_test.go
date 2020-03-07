@@ -1,7 +1,7 @@
-package helper
+package idProduce
 
 import (
-	"github.com/galen-hlh/micro-sdk/go/helper"
+	"github.com/galen-hlh/micro-sdk/go/idProduce"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
@@ -19,15 +19,15 @@ func TestSnowFlake_GetDistributeId(t *testing.T) {
 	defer conn.Close()
 
 	// 创建Waiter服务的客户端
-	client := helper.NewHelperClient(conn)
+	client := idProduce.NewHelperClient(conn)
 
 	// 调用gRPC接口
 	tr, err := client.GetDistributeId(context.Background())
-	_ = tr.Send(&helper.IdRequest{})
+	_ = tr.Send(&idProduce.IdProduceRequest{Len: 5})
 	rsp, _ := tr.Recv()
 
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("服务端响应: %d", rsp.Result)
+	log.Printf("服务端响应: %d", rsp.Ids)
 }
