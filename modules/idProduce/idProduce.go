@@ -3,7 +3,7 @@ package idProduce
 import (
 	"github.com/galen-hlh/micro-sdk/go/idProduce"
 	"go.uber.org/zap"
-	HelperService "micro/service/idProduce"
+	service "micro/service/idProduce"
 	"micro/util/log"
 )
 
@@ -17,7 +17,7 @@ func (g *HelperServer) GetDistributeId(server idProduce.IdProduce_GetDistributeI
 		return err
 	}
 
-	ids, err := HelperService.GetDistributeId(server.Context(), request)
+	ids, err := service.GetDistributeId(server.Context(), request)
 	if err != nil {
 		log.Logf("helper", zap.String("get id", err.Error()))
 	}

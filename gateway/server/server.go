@@ -17,9 +17,9 @@ type Server interface {
 }
 
 var (
-	DefaultAddress          = "localhost:9501"
+	DefaultAddress          = "127.0.0.1:9501"
 	DefaultName             = "micro.server"
-	DefaultRegisterAddress  = "localhost:2791"
+	DefaultRegisterAddress  = "127.0.0.1:2791"
 	DefaultVersion          = time.Now().Format("2006.01.02.15.04")
 	DefaultId               = uuid.New().String()
 	DefaultRegisterCheck    = func(context.Context) error { return nil }
