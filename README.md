@@ -6,6 +6,11 @@ golang简单实现grpc微服务，部分代码借鉴于go-micro
 GO111MODULE=on
 ```
 
+## 运行项目
+```bash
+go run main.go
+```
+
 ## demo
 ```golang
 package main
@@ -20,7 +25,7 @@ import (
 )
 
 func main() {
-    //设置etcd集群
+        //设置etcd集群
 	etcdRegistry := registry.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{"127.0.0.1:2379"}
 	})
@@ -42,9 +47,4 @@ func main() {
 	}
 }
 
-```
-
-## 运行项目
-```bash
-go run main.go
 ```
