@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coreos/etcd v3.3.17+incompatible
-	github.com/galen-hlh/micro-sdk v0.0.0-20200307022445-e8777f4d3aa2
+	github.com/galen-hlh/micro-sdk v0.0.0-20200318024143-400f72b592d3
 	github.com/go-log/log v0.2.0
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1

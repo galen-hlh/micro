@@ -9,7 +9,7 @@ import (
 
 type HelperServer struct{}
 
-func (g *HelperServer) GetDistributeId(server idProduce.Helper_GetDistributeIdServer) error {
+func (g *HelperServer) GetDistributeId(server idProduce.IdProduce_GetDistributeIdServer) error {
 
 	request, err := server.Recv()
 	if err != nil {

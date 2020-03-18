@@ -22,7 +22,7 @@ func main() {
 	service.Init()
 
 	//服务注册
-	h.RegisterHelperServer(service.Server().GetGrpcServer(), &idProduce.HelperServer{})
+	h.RegisterIdProduceServer(service.Server().GetGrpcServer(), &idProduce.HelperServer{})
 	reflection.Register(service.Server().GetGrpcServer())
 
 	if err := service.Run(); err != nil {
