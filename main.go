@@ -14,7 +14,7 @@ func main() {
 	//})
 	service := gateway.NewService(
 		gateway.Name("helper"),
-		gateway.Address("127.0.0.1:9501"),
+		gateway.Address("localhost:9501"),
 		//gateway.Registry(etcdRegistry),
 	)
 

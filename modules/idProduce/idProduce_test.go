@@ -19,7 +19,7 @@ func TestSnowFlake_GetDistributeId(t *testing.T) {
 	defer conn.Close()
 
 	// 创建Waiter服务的客户端
-	client := idProduce.NewHelperClient(conn)
+	client := idProduce.NewIdProduceClient(conn)
 
 	// 调用gRPC接口
 	tr, err := client.GetDistributeId(context.Background())
